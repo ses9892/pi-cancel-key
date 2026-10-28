@@ -5,6 +5,14 @@
   "type": "module",
   "license": "MIT",
   "author": "Jinho Jang <ses1238@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ses9892/pi-cancel-key.git"
+  },
+  "homepage": "https://github.com/ses9892/pi-cancel-key#readme",
+  "bugs": {
+    "url": "https://github.com/ses9892/pi-cancel-key/issues"
+  },
   "keywords": [
     "pi-package",
     "pi-coding-agent",
