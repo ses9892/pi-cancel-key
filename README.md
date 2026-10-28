@@ -13,6 +13,18 @@ somewhere sensible, persists the change, and applies it without a restart.
 /cancel-key
 ```
 
+## Why this exists
+
+A personal annoyance, first. Moving to pi from another terminal agent, a single
+`escape` aborting a running stream was too easy to hit by accident — one key,
+no confirmation, and the habit carried over from a tool where that key did
+something else.
+
+Editing `~/.pi/agent/keybindings.json` by hand solves half of it: `app.interrupt`
+can be moved. But the key you move it to already belongs to something else, and
+pi resolves `app.interrupt` before every other action, so the other action just
+stops working — silently. That is the half `/cancel-key` exists for.
+
 ## Install
 
 ```bash
