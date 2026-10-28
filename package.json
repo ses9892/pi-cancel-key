@@ -25,6 +25,7 @@
     "extensions/",
     "src/",
     "README.md",
+    "README.ko.md",
     "LICENSE"
   ],
   "pi": {

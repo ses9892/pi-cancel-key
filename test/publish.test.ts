@@ -38,6 +38,7 @@ test("publish: the tarball contains exactly the runtime files", { timeout: 60_00
 
   assert.deepEqual(files, [
     "LICENSE",
+    "README.ko.md",
     "README.md",
     "extensions/cancel-key.ts",
     "package.json",

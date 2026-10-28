@@ -1,42 +1,45 @@
 # pi-cancel-key
 
-Cancel a running pi agent with the key **you** choose — and let the command
-move whatever else was sitting on that key out of the way.
+**English** | [한국어](README.ko.md)
+
+Cancel a running pi agent with the key you choose.
+
+pi cancels with `escape` and resolves that binding before anything else, so
+rebinding it to `ctrl+c` silently strands every other action on `ctrl+c`. This
+extension makes the trade explicit: pick a key, and it moves the displaced keys
+somewhere sensible, persists the change, and applies it without a restart.
 
 ```
 /cancel-key
 ```
 
-## Why this exists
+## Install
 
-pi treats `escape` as "cancel / abort" (`app.interrupt`) and checks it **before**
-every other app action. So simply rebinding `app.interrupt` to `ctrl+c` would
-silently make `ctrl+c`'s previous jobs unreachable: clearing the editor
-(`app.clear`) and the editor's selection copy (`tui.input.copy`).
+```bash
+# from git (works today)
+pi install git:github.com/ses9892/pi-cancel-key
 
-This extension makes the trade explicit. When you pick a key it:
+# pinned to a release
+pi install git:github.com/ses9892/pi-cancel-key@v0.1.0
 
-1. assigns it to `app.interrupt`,
-2. takes it away from every action that had it,
-3. moves those actions to their next free key — the same letter with an extra
-   modifier (`ctrl+x` → `ctrl+shift+x` → `alt+x`), or unmaps them only when
-   every derived candidate is taken,
-4. writes `~/.pi/agent/keybindings.json` (preserving `$schema` and your other
-   entries),
-5. applies the change to the **running** session — no restart.
+# project-scoped
+pi install -l git:github.com/ses9892/pi-cancel-key
 
-What it wrote is recorded in `~/.pi/agent/cancel-key-state.json`, so reset undoes
-**exactly** those entries and leaves anything you edited by hand alone.
+# try it once, persist nothing
+pi -e git:github.com/ses9892/pi-cancel-key
+```
+
+Extensions run with your OS permissions. Read the source before installing.
 
 ## Usage
 
 | Command | Effect |
 |---|---|
-| `/cancel-key` | picker with the current key, candidates, free-form input, and reset |
+| `/cancel-key` | picker: current key, candidates, free-form input, reset |
 | `/cancel-key ctrl+x` | apply a key directly |
-| `/cancel-key` → `Reset to pi defaults` | drop this tool's overrides, back to pi defaults |
+| `/cancel-key` → `Reset to pi defaults` | drop this tool's overrides |
 
-Choosing `ctrl+c` on a stock pi produces:
+Choosing `ctrl+c` on a stock pi:
 
 | action | before | after |
 |---|---|---|
@@ -45,10 +48,10 @@ Choosing `ctrl+c` on a stock pi produces:
 | `tui.select.cancel` | `escape`, `ctrl+c` | `escape` ← displaced |
 | `tui.input.copy` | `ctrl+c` | *(unmapped)* ← nothing left to move to |
 
-`escape` keeps closing dialogs and the transcript search; it just stops
-cancelling the agent.
+`escape` keeps closing dialogs and transcript search; it just stops cancelling
+the agent.
 
-Choosing `ctrl+x` instead displaces the two actions pi also keeps there:
+Choosing `ctrl+x` instead displaces the two actions pi keeps there:
 
 | action | before | after |
 |---|---|---|
@@ -59,19 +62,31 @@ Choosing `ctrl+x` instead displaces the two actions pi also keeps there:
 Verify inside pi with `/hotkeys`: `Ctrl+C` should read *Cancel autocomplete /
 abort streaming*.
 
-## Install
+## How displacement works
 
-```bash
-# project-scoped (writes .pi/settings.json)
-pi install -l ./pi-cancel-cut
+A displaced action keeps its letter and gains a modifier:
+`ctrl+x` → `ctrl+shift+x` → `alt+x` → `ctrl+alt+x`. It is unmapped only when
+every candidate is already taken, and the notification always says which
+happened:
 
-# or try it once, without persisting anything
-pi -e ./pi-cancel-cut
+```
+· app.interrupt: escape → ctrl+c
+· app.clear: ctrl+c → ctrl+shift+c (displaced)
+· tui.select.cancel: escape / ctrl+c → escape (displaced)
+· tui.input.copy: ctrl+c → (unmapped, no free key)
+Saved: ~/.pi/agent/keybindings.json
 ```
 
-Extensions run with your OS permissions; read the source before installing.
+`keybindings.json` is rewritten in place: `$schema` and any action this tool does
+not own survive untouched.
 
-## Design
+## Reset is exact
+
+What was written is recorded in `~/.pi/agent/cancel-key-state.json`, so reset
+removes **only those entries**, and only while they still hold the value this
+tool wrote. An edit you made by hand is never reverted.
+
+## Development
 
 | file | role |
 |---|---|
@@ -81,24 +96,27 @@ Extensions run with your OS permissions; read the source before installing.
 | `src/cancel-key.ts` | plan → persist → apply, with injected dependencies |
 | `extensions/cancel-key.ts` | the `/cancel-key` command and its picker |
 
-Arbitration is deliberately pure so the rules can be proven without a terminal.
-The extension only formats labels and calls `ctx.ui`.
-
-## Tests
+Arbitration is pure, so the rules are provable without a terminal; the extension
+only formats labels and calls `ctx.ui`.
 
 ```bash
-npm install --no-save   # no deps; kept for habit
-npm test                # unit + integration + e2e
+npm test           # everything
+npm run test:unit  # arbitration + integration, milliseconds
+npm run test:e2e   # real pi on a real pty
 ```
 
-- `test/plan.test.ts` — arbitration rules, no I/O.
-- `test/cancel-key.test.ts` — real `pi-tui` `KeybindingsManager`, real files in
-  a temp dir, live keymap assertions.
-- `test/e2e.test.ts` — a real `pi` process on a real pty (via
-  `scripts/pty-driver.py`), booted with an isolated `PI_CODING_AGENT_DIR`,
-  driven by keystrokes. It asserts the written file **and** that pi's own
-  `/hotkeys` overlay changed.
+| test | what it proves |
+|---|---|
+| `test/plan.test.ts` | the arbitration rules, no I/O |
+| `test/cancel-key.test.ts` | real `pi-tui` keybindings manager, real files in a temp dir, live keymap |
+| `test/e2e.test.ts` | a real `pi` process driven by keystrokes; asserts the written file **and** pi's own `/hotkeys` overlay |
+| `test/publish.test.ts` | packs the tarball, installs it into an npm root, boots pi from it |
 
-`scripts/link-pi.mjs` symlinks the `@earendil-works/*` packages from your local
-pi install instead of downloading a second copy — a second copy would be a
+`scripts/pty-driver.py` gives the e2e tests a pty using only the Python standard
+library. `scripts/link-pi.mjs` symlinks `@earendil-works/*` from your local pi
+install instead of downloading a second copy — a second copy would be a
 different module instance than the one pi hands the extension.
+
+## License
+
+MIT
