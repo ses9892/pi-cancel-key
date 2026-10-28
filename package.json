@@ -1,0 +1,45 @@
+{
+  "name": "pi-cancel-key",
+  "version": "0.1.0",
+  "description": "Pick the key that cancels a running pi agent, and automatically remap the keys it displaces.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Jinho Jang <ses1238@gmail.com>",
+  "keywords": [
+    "pi-package",
+    "pi-coding-agent",
+    "pi-extension",
+    "keybindings",
+    "terminal-ui",
+    "tui"
+  ],
+  "files": [
+    "extensions/",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions/cancel-key.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=1.4.0",
+    "@earendil-works/pi-tui": ">=1.4.0"
+  },
+  "scripts": {
+    "pretest": "node scripts/link-pi.mjs",
+    "test": "node --test test/",
+    "test:unit": "node --test test/plan.test.ts test/cancel-key.test.ts",
+    "test:e2e": "node --test test/e2e.test.ts",
+    "pack:check": "npm pack --dry-run",
+    "prepublishOnly": "npm test"
+  },
+  "engines": {
+    "node": ">=22.6"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
